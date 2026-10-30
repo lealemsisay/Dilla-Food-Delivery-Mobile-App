@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'Admin';
+    }
+
+    function isRider() {
+      return isAuthenticated() && getUserData().role == 'Rider';
+    }
+
+    function isRestaurantOwner(restaurantId) {
+      return isAuthenticated() && (
+        getUserData().role == 'Restaurant' &&
+        getUserData().restaurantId == restaurantId
+      );
+    }
+
+    // Users collection: Users can read and update their own document, but cannot change their assigned role
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'Customer');
+      allow update: if isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Saved Delivery Addresses: Users manage their own private addresses
+    match /addresses/{addressId} {
+      allow read, write: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Restaurants & Menu Items: Publicly readable for active customers; management restricted to authorized owners & admins
+    match /restaurants/{restaurantId} {
+      allow read: if true;
+      allow write: if isRestaurantOwner(restaurantId) || isAdmin();
+
+      match /menu/{menuItemId} {
+        allow read: if true;
+        allow write: if isRestaurantOwner(restaurantId) || isAdmin();
+      }
+    }
+
+    // Orders: Created by customers; accessible by customer, assigned rider, restaurant owner, and admins
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.assignedRiderId == request.auth.uid ||
+        isRestaurantOwner(resource.data.restaurantId) ||
+        isAdmin()
+      );
+
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Status updates and rider assignments restricted to authorized roles
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.assignedRiderId == request.auth.uid ||
+        isRider() ||
+        isRestaurantOwner(resource.data.restaurantId) ||
+        isAdmin()
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // Configured Service Zones: Publicly readable; admin writable
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

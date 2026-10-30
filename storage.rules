@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Profile photos
+    match /profile_images/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Restaurant & menu images
+    match /restaurant_images/{restaurantId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Rider & Restaurant verification documents
+    match /verification_docs/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+  }
+}

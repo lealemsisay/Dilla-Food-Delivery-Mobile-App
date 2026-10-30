@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "413354812305",
+    "project_id": "dilla-food-delivery",
+    "storage_bucket": "dilla-food-delivery.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:413354812305:android:1fdcdcee4ebcdfe219f030",
+        "android_client_info": {
+          "package_name": "com.dilla.food"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmrNZczoAIx_y3xW8gO9mQcMI6OcwMIXw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
