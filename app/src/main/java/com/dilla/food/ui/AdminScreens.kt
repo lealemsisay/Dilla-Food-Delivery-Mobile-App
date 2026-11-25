@@ -15,8 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -25,6 +25,8 @@ import com.dilla.food.data.*
 @Composable
 fun AdminMainShell(
     vm: AppVm,
+    onOpenProfile: () -> Unit = {},
+    onOpenChangePass: () -> Unit = {},
     onSignOut: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -34,87 +36,119 @@ fun AdminMainShell(
         "Restaurants" to Icons.Default.ShoppingCart,
         "Riders" to Icons.Default.Place,
         "Orders" to Icons.Default.List,
+        "Categories" to Icons.Default.List,
         "Zones" to Icons.Default.LocationOn,
         "Reports" to Icons.Default.DateRange,
         "Audit" to Icons.Default.Lock,
         "Settings" to Icons.Default.Settings
     )
 
-    Scaffold(
-        containerColor = SurfaceBg,
-        topBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
-            ) {
-                Column(Modifier.statusBarsPadding()) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(PrimaryColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+    GlobalRoleDrawer(
+        vm = vm,
+        role = Role.Admin,
+        currentSelectedLabel = tabs[selectedTab].first,
+        onSelectItem = { routeKey ->
+            when (routeKey) {
+                "dashboard" -> selectedTab = 0
+                "customers" -> selectedTab = 1
+                "restaurants" -> selectedTab = 2
+                "riders" -> selectedTab = 3
+                "orders" -> selectedTab = 4
+                "monitoring" -> selectedTab = 4
+                "categories" -> selectedTab = 5
+                "zones" -> selectedTab = 6
+                "fees" -> selectedTab = 6
+                "reports" -> selectedTab = 7
+                "notifications" -> selectedTab = 0
+                "audit" -> selectedTab = 8
+                "settings" -> selectedTab = 9
+                "change_pass" -> onOpenChangePass()
+                "logout" -> onSignOut()
+            }
+        },
+        onSignOut = onSignOut
+    ) { openDrawer ->
+        Scaffold(
+            containerColor = SurfaceBg,
+            topBar = {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    Column(Modifier.statusBarsPadding()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = openDrawer, modifier = Modifier.size(36.dp)) {
+                                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = InkColor)
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                Box(
+                                    Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(PrimaryColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text("DILLA PLATFORM ADMIN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryColor, letterSpacing = 1.sp)
+                                    Text("Control & Management", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = InkColor)
+                                }
                             }
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text("DILLA PLATFORM ADMIN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryColor, letterSpacing = 1.sp)
-                                Text("Control & Management", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = InkColor)
+                            IconButton(onClick = onSignOut) {
+                                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = PrimaryColor)
                             }
                         }
-                        IconButton(onClick = onSignOut) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = PrimaryColor)
-                        }
-                    }
 
-                    // Navigation Tab Strip
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTab,
-                        edgePadding = 16.dp,
-                        containerColor = Color.White,
-                        contentColor = PrimaryColor,
-                        divider = {}
-                    ) {
-                        tabs.forEachIndexed { idx, (label, icon) ->
-                            Tab(
-                                selected = selectedTab == idx,
-                                onClick = { selectedTab = idx },
-                                text = { Text(label, fontSize = 11.sp, fontWeight = if (selectedTab == idx) FontWeight.Bold else FontWeight.Normal) },
-                                icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp)) },
-                                selectedContentColor = PrimaryColor,
-                                unselectedContentColor = GrayColor
-                            )
+                        // Navigation Tab Strip
+                        ScrollableTabRow(
+                            selectedTabIndex = selectedTab,
+                            edgePadding = 16.dp,
+                            containerColor = Color.White,
+                            contentColor = PrimaryColor,
+                            divider = {}
+                        ) {
+                            tabs.forEachIndexed { idx, (label, icon) ->
+                                Tab(
+                                    selected = selectedTab == idx,
+                                    onClick = { selectedTab = idx },
+                                    text = { Text(label, fontSize = 11.sp, fontWeight = if (selectedTab == idx) FontWeight.Bold else FontWeight.Normal) },
+                                    icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp)) },
+                                    selectedContentColor = PrimaryColor,
+                                    unselectedContentColor = GrayColor
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-    ) { pad ->
-        Column(
-            Modifier
-                .padding(pad)
-                .fillMaxSize()
-        ) {
-            when (selectedTab) {
-                0 -> AdminDashboardView(vm)
-                1 -> AdminCustomersView(vm)
-                2 -> AdminRestaurantsView(vm)
-                3 -> AdminRidersView(vm)
-                4 -> AdminOrdersView(vm)
-                5 -> AdminZonesView(vm)
-                6 -> AdminReportsView(vm)
-                7 -> AdminAuditView(vm)
-                else -> AdminSettingsView(vm, onSignOut)
+        ) { pad ->
+            Column(
+                Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+            ) {
+                when (selectedTab) {
+                    0 -> AdminDashboardView(vm)
+                    1 -> AdminCustomersView(vm)
+                    2 -> AdminRestaurantsView(vm)
+                    3 -> AdminRidersView(vm)
+                    4 -> AdminOrdersView(vm)
+                    5 -> AdminCategoriesView(vm)
+                    6 -> AdminZonesView(vm)
+                    7 -> AdminReportsView(vm)
+                    8 -> AdminAuditView(vm)
+                    else -> AdminSettingsView(vm, onSignOut)
+                }
             }
         }
     }
@@ -248,7 +282,15 @@ private fun AdminRestaurantsView(vm: AppVm) {
                     Text(app.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = InkColor)
                     Text("Owner: ${app.ownerName} · Phone: ${app.phone}", fontSize = 12.sp, color = GrayColor)
                     Text("Cuisine: ${app.cuisine} · Address: ${app.address}", fontSize = 12.sp, color = GrayColor)
-                    Text("Submitted: ${app.submittedAt} · Verification Doc: ${app.docUrl}", fontSize = 11.sp, color = PrimaryColor)
+                    Text("Submitted Trade License: ${app.docUrl}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+
+                    if (app.customFieldsData.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        app.customFieldsData.forEach { (k, v) ->
+                            Text("$k: $v", fontSize = 11.sp, color = InkColor, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PrimaryButton("Approve Vendor", Modifier.weight(1f)) {
@@ -457,7 +499,91 @@ private fun AdminOrdersView(vm: AppVm) {
     }
 }
 
-/* ---------- 6. Service Zones & Fees View ---------- */
+/* ---------- 6. Food Category Management View ---------- */
+@Composable
+private fun AdminCategoriesView(vm: AppVm) {
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Global Food Categories (${vm.globalFoodCategories.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
+            Button(
+                onClick = { showAddDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            ) {
+                Text("+ Add Category", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(vm.globalFoodCategories) { cat ->
+                SoftCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(cat.emoji, fontSize = 24.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(cat.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+                            Text("Scope: Global Admin Category", fontSize = 11.sp, color = GrayColor)
+                        }
+                        StatusChip(if (cat.isActive) "Active" else "Disabled", if (cat.isActive) TertiaryColor else GrayColor)
+                        Spacer(Modifier.width(6.dp))
+                        Switch(
+                            checked = cat.isActive,
+                            onCheckedChange = { vm.toggleGlobalCategoryActive(cat.id) },
+                            colors = SwitchDefaults.colors(checkedTrackColor = PrimaryColor)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        var catName by remember { mutableStateOf("") }
+        var emojiInput by remember { mutableStateOf("🍲") }
+
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("Create Global Category", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = catName, onValueChange = { catName = it }, label = { Text("Category Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = emojiInput, onValueChange = { emojiInput = it }, label = { Text("Emoji Icon") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (catName.isNotBlank()) {
+                            val newCat = FoodCategory(
+                                id = "gc_" + System.currentTimeMillis(),
+                                name = catName.trim(),
+                                emoji = emojiInput,
+                                isGlobal = true,
+                                isActive = true
+                            )
+                            vm.addGlobalCategory(newCat)
+                            showAddDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) { Text("Save Category", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Cancel", color = GrayColor) } }
+        )
+    }
+}
+
+/* ---------- 7. Service Zones & Fees View ---------- */
 @Composable
 private fun AdminZonesView(vm: AppVm) {
     var showAddZoneDialog by remember { mutableStateOf(false) }
@@ -540,10 +666,15 @@ private fun AdminZonesView(vm: AppVm) {
     }
 }
 
-/* ---------- 7. Reports & Financial Analytics View ---------- */
+/* ---------- 8. Reports & Financial Analytics View ---------- */
 @Composable
 private fun AdminReportsView(vm: AppVm) {
-    val totalRevenue = vm.orders.filter { it.status == OrderStatus.Delivered }.sumOf { it.totalEtb }
+    val context = LocalContext.current
+    var selectedPeriod by remember { mutableStateOf("This Month") }
+    val periods = listOf("Today", "This Week", "This Month", "Custom Range")
+
+    val completedOrders = vm.orders.filter { it.status == OrderStatus.Delivered }
+    val totalRevenue = completedOrders.sumOf { it.totalEtb }
     val platformServiceFees = vm.orders.size * 10
     val riderEarnings = vm.orders.size * 25
     val restaurantEarnings = (totalRevenue - platformServiceFees - riderEarnings).coerceAtLeast(0)
@@ -555,10 +686,21 @@ private fun AdminReportsView(vm: AppVm) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Financial & Operational Analytics", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Financial & Operational Analytics", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(periods) { p ->
+                    Pill(p, selectedPeriod == p) { selectedPeriod = p }
+                }
+            }
+        }
 
         SoftCard {
-            Text("FINANCIAL REVENUE BREAKDOWN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GrayColor)
+            Text("FINANCIAL REVENUE BREAKDOWN ($selectedPeriod)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GrayColor)
             Spacer(Modifier.height(8.dp))
             ReportRow("Gross Order Value", etb(totalRevenue))
             ReportRow("Platform Service Fees (Dilla)", etb(platformServiceFees))
@@ -577,13 +719,23 @@ private fun AdminReportsView(vm: AppVm) {
             ReportRow("Cancelled / Rejected", vm.orders.count { it.status == OrderStatus.Rejected }.toString())
         }
 
-        PrimaryButton("Export CSV Financial Report") {
-            vm.addAuditLog("REPORT_EXPORTED", "Financial Report CSV", "Exported financial and operational summary")
+        SoftCard {
+            Text("Export Admin Platform Reports", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+            Text("Download or share verified executive platform financial records.", fontSize = 11.sp, color = GrayColor)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PrimaryButton("Export CSV (.csv)", Modifier.weight(1f)) {
+                    ReportExportService.exportAdminReportCsv(context, vm, selectedPeriod)
+                }
+                OutlineButton("Export Excel (.xlsx)", Modifier.weight(1f)) {
+                    ReportExportService.exportAdminReportExcel(context, vm, selectedPeriod)
+                }
+            }
         }
     }
 }
 
-/* ---------- 8. Audit Logs & System Activity View ---------- */
+/* ---------- 9. Audit Logs & System Activity View ---------- */
 @Composable
 private fun AdminAuditView(vm: AppVm) {
     Column(
@@ -621,10 +773,12 @@ private fun AdminAuditView(vm: AppVm) {
     }
 }
 
-/* ---------- 9. Admin Settings View ---------- */
+/* ---------- 10. Admin Settings & Dynamic Input Fields Configurator ---------- */
 @Composable
 private fun AdminSettingsView(vm: AppVm, onSignOut: () -> Unit) {
     var serviceFeeInput by remember { mutableStateOf("10") }
+    var newUserFieldInput by remember { mutableStateOf("") }
+    var newRestaurantFieldInput by remember { mutableStateOf("") }
 
     Column(
         Modifier
@@ -637,6 +791,80 @@ private fun AdminSettingsView(vm: AppVm, onSignOut: () -> Unit) {
             Text("Administrator Account", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = InkColor)
             Text("ID: admin_01 · Role: Platform Administrator", fontSize = 12.sp, color = GrayColor)
             Text("Authorized Scope: Dilla Town & Campus Network", fontSize = 11.sp, color = PrimaryColor, fontWeight = FontWeight.Bold)
+        }
+
+        // Dynamic User Input Fields Configurator
+        SoftCard {
+            Text("Required Customer Profile Input Fields", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+            Spacer(Modifier.height(6.dp))
+            vm.customUserFields.forEach { field ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("• $field", fontSize = 12.sp, color = InkColor)
+                    IconButton(onClick = { vm.removeCustomUserField(field) }, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = newUserFieldInput,
+                    onValueChange = { newUserFieldInput = it },
+                    label = { Text("New Customer Field Name") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        vm.addCustomUserField(newUserFieldInput)
+                        newUserFieldInput = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("Add", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Dynamic Restaurant Input Fields Configurator
+        SoftCard {
+            Text("Required Restaurant Registration Fields", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+            Spacer(Modifier.height(6.dp))
+            vm.customRestaurantFields.forEach { field ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("• $field", fontSize = 12.sp, color = InkColor)
+                    IconButton(onClick = { vm.removeCustomRestaurantField(field) }, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = newRestaurantFieldInput,
+                    onValueChange = { newRestaurantFieldInput = it },
+                    label = { Text("New Restaurant Field Name") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        vm.addCustomRestaurantField(newRestaurantFieldInput)
+                        newRestaurantFieldInput = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("Add", fontWeight = FontWeight.Bold)
+                }
+            }
         }
 
         SoftCard {

@@ -1,5 +1,8 @@
 package com.dilla.food.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +29,8 @@ import com.dilla.food.data.*
 @Composable
 fun RestaurantMainShell(
     vm: AppVm,
+    onOpenProfile: () -> Unit = {},
+    onOpenChangePass: () -> Unit = {},
     onSignOut: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -37,82 +43,109 @@ fun RestaurantMainShell(
         "Settings" to Icons.Default.Settings
     )
 
-    Scaffold(
-        containerColor = SurfaceBg,
-        topBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
-            ) {
-                Column(Modifier.statusBarsPadding()) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(PrimaryColor.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(vm.restaurant.emoji, fontSize = 20.sp)
-                            }
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(vm.restaurant.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
-                                    Spacer(Modifier.width(6.dp))
-                                    StatusChip("Approved", TertiaryColor)
+    GlobalRoleDrawer(
+        vm = vm,
+        role = Role.Restaurant,
+        currentSelectedLabel = tabs[selectedTab].first,
+        onSelectItem = { routeKey ->
+            when (routeKey) {
+                "dashboard" -> selectedTab = 0
+                "orders" -> selectedTab = 1
+                "history" -> selectedTab = 1
+                "menu" -> selectedTab = 2
+                "categories" -> selectedTab = 2
+                "profile" -> onOpenProfile()
+                "location" -> selectedTab = 0
+                "reports" -> selectedTab = 4
+                "notifications" -> selectedTab = 0
+                "settings" -> selectedTab = 5
+                "change_pass" -> onOpenChangePass()
+                "logout" -> onSignOut()
+            }
+        },
+        onSignOut = onSignOut
+    ) { openDrawer ->
+        Scaffold(
+            containerColor = SurfaceBg,
+            topBar = {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    Column(Modifier.statusBarsPadding()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = openDrawer, modifier = Modifier.size(36.dp)) {
+                                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = InkColor)
                                 }
-                                Text("${vm.restaurant.cuisine} · ${vm.restaurant.address}", fontSize = 11.sp, color = GrayColor)
+                                Spacer(Modifier.width(4.dp))
+                                Box(
+                                    Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(PrimaryColor.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(vm.restaurant.emoji, fontSize = 18.sp)
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(vm.restaurant.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = InkColor)
+                                        Spacer(Modifier.width(4.dp))
+                                        StatusChip("Approved", TertiaryColor)
+                                    }
+                                    Text("${vm.restaurant.cuisine} · ${vm.restaurant.address}", fontSize = 11.sp, color = GrayColor)
+                                }
+                            }
+                            IconButton(onClick = onSignOut) {
+                                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = PrimaryColor)
                             }
                         }
-                        IconButton(onClick = onSignOut) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign Out", tint = PrimaryColor)
-                        }
-                    }
 
-                    // Navigation Tab Strip
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTab,
-                        edgePadding = 16.dp,
-                        containerColor = Color.White,
-                        contentColor = PrimaryColor,
-                        divider = {}
-                    ) {
-                        tabs.forEachIndexed { idx, (label, icon) ->
-                            Tab(
-                                selected = selectedTab == idx,
-                                onClick = { selectedTab = idx },
-                                text = { Text(label, fontSize = 11.sp, fontWeight = if (selectedTab == idx) FontWeight.Bold else FontWeight.Normal) },
-                                icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp)) },
-                                selectedContentColor = PrimaryColor,
-                                unselectedContentColor = GrayColor
-                            )
+                        // Navigation Tab Strip
+                        ScrollableTabRow(
+                            selectedTabIndex = selectedTab,
+                            edgePadding = 16.dp,
+                            containerColor = Color.White,
+                            contentColor = PrimaryColor,
+                            divider = {}
+                        ) {
+                            tabs.forEachIndexed { idx, (label, icon) ->
+                                Tab(
+                                    selected = selectedTab == idx,
+                                    onClick = { selectedTab = idx },
+                                    text = { Text(label, fontSize = 11.sp, fontWeight = if (selectedTab == idx) FontWeight.Bold else FontWeight.Normal) },
+                                    icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp)) },
+                                    selectedContentColor = PrimaryColor,
+                                    unselectedContentColor = GrayColor
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-    ) { pad ->
-        Column(
-            Modifier
-                .padding(pad)
-                .fillMaxSize()
-        ) {
-            when (selectedTab) {
-                0 -> RestaurantDashboardView(vm)
-                1 -> RestaurantOrdersView(vm)
-                2 -> RestaurantMenuView(vm)
-                3 -> RestaurantScheduledView(vm)
-                4 -> RestaurantReportsView(vm)
-                else -> RestaurantSettingsView(vm, onSignOut)
+        ) { pad ->
+            Column(
+                Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+            ) {
+                when (selectedTab) {
+                    0 -> RestaurantDashboardView(vm)
+                    1 -> RestaurantOrdersView(vm)
+                    2 -> RestaurantMenuView(vm)
+                    3 -> RestaurantScheduledView(vm)
+                    4 -> RestaurantReportsView(vm)
+                    else -> RestaurantSettingsView(vm, onSignOut)
+                }
             }
         }
     }
@@ -292,10 +325,15 @@ private fun RestaurantOrdersView(vm: AppVm) {
     }
 }
 
-/* ---------- 3. Menu Management View ---------- */
+/* ---------- 3. Menu & Category Management View (Up to 7 Food Photos with Gallery Upload) ---------- */
 @Composable
 private fun RestaurantMenuView(vm: AppVm) {
     var showAddItemDialog by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+
+    val allCategories = remember(vm.globalFoodCategories.size, vm.restaurantCustomCategories.size) {
+        vm.globalFoodCategories.filter { it.isActive }.map { it.name } + vm.restaurantCustomCategories.map { it.name }
+    }
 
     Column(
         Modifier
@@ -309,11 +347,36 @@ private fun RestaurantMenuView(vm: AppVm) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Food Menu Catalog (${vm.restaurantMenuList.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
-            Button(
-                onClick = { showAddItemDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                Text("+ Add Item", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlineButton("+ Category") { showAddCategoryDialog = true }
+                Button(
+                    onClick = { showAddItemDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("+ Add Item", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Restaurant Categories Strip
+        if (vm.restaurantCustomCategories.isNotEmpty()) {
+            Text("Kitchen Custom Categories", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(vm.restaurantCustomCategories) { cat ->
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = SurfaceContainer,
+                        border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                    ) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${cat.emoji} ${cat.name}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = InkColor)
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(onClick = { vm.deleteRestaurantCategory(cat.id) }, modifier = Modifier.size(18.dp)) {
+                                Icon(Icons.Default.Clear, contentDescription = "Delete", tint = GrayColor, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -332,6 +395,10 @@ private fun RestaurantMenuView(vm: AppVm) {
                             }
                             Text(item.description, fontSize = 11.sp, color = GrayColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("${etb(item.priceEtb)} · Prep: ${item.prepTimeMin} min · Category: ${item.category}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+
+                            if (item.imageList.isNotEmpty()) {
+                                Text("Attached Food Photos: ${item.imageList.size} / 7 uploaded", fontSize = 10.sp, color = TertiaryColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 2.dp))
+                            }
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(if (isUnavailable) "Hidden" else "Available", fontSize = 10.sp, color = GrayColor)
@@ -358,26 +425,110 @@ private fun RestaurantMenuView(vm: AppVm) {
         }
     }
 
+    if (showAddCategoryDialog) {
+        var newCatName by remember { mutableStateOf("") }
+        var emojiInput by remember { mutableStateOf("🍲") }
+
+        AlertDialog(
+            onDismissRequest = { showAddCategoryDialog = false },
+            title = { Text("Create Kitchen Category", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = newCatName, onValueChange = { newCatName = it }, label = { Text("Category Name (e.g. Special Tibs, Desserts)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = emojiInput, onValueChange = { emojiInput = it }, label = { Text("Emoji Icon") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newCatName.isNotBlank()) {
+                            vm.addRestaurantCategory(newCatName, emojiInput)
+                            showAddCategoryDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) { Text("Save Category", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showAddCategoryDialog = false }) { Text("Cancel", color = GrayColor) } }
+        )
+    }
+
     if (showAddItemDialog) {
         var nameInput by remember { mutableStateOf("") }
         var descInput by remember { mutableStateOf("") }
         var priceInput by remember { mutableStateOf("200") }
-        var categoryInput by remember { mutableStateOf("Traditional") }
+        var selectedCategory by remember { mutableStateOf(allCategories.firstOrNull() ?: "Traditional Food") }
         var emojiInput by remember { mutableStateOf("🍲") }
         var isFastingInput by remember { mutableStateOf(false) }
 
+        // Food photos list up to 7 photos
+        val foodPhotoUrls = remember { mutableStateListOf<String>("https://images.unsplash.com/photo-1544025162-d76694265947") }
+        val repository = remember { FirebaseRepository() }
+
+        // Native Android Gallery Launcher for Food Photos
+        val foodPhotoPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            if (uri != null && foodPhotoUrls.size < 7) {
+                repository.uploadImage(
+                    path = "food_photos/${System.currentTimeMillis()}.jpg",
+                    imageUri = uri,
+                    onProgress = {},
+                    onSuccess = { downloadUrl ->
+                        foodPhotoUrls.add(downloadUrl)
+                    },
+                    onError = {
+                        foodPhotoUrls.add(uri.toString())
+                    }
+                )
+            }
+        }
+
         AlertDialog(
             onDismissRequest = { showAddItemDialog = false },
-            title = { Text("Add Food Item", fontWeight = FontWeight.Bold) },
+            title = { Text("Add Food Item (Up to 7 Photos)", fontWeight = FontWeight.Bold) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Dish Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = descInput, onValueChange = { descInput = it }, label = { Text("Description & Ingredients") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = priceInput, onValueChange = { priceInput = it }, label = { Text("Price (ETB)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = categoryInput, onValueChange = { categoryInput = it }, label = { Text("Category") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+                    Text("Select Category:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(allCategories) { cat ->
+                            Pill(cat, selectedCategory == cat) { selectedCategory = cat }
+                        }
+                    }
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Fasting / Tsom Friendly", fontSize = 12.sp, color = InkColor, modifier = Modifier.weight(1f))
                         Switch(isFastingInput, { isFastingInput = it }, colors = SwitchDefaults.colors(checkedTrackColor = PrimaryColor))
+                    }
+
+                    // Food Image Upload Section (Up to 7 Photos)
+                    Spacer(Modifier.height(6.dp))
+                    Text("Food Photos (${foodPhotoUrls.size} / 7 uploaded):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                    foodPhotoUrls.forEachIndexed { idx, _ ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📷 Dish Photo #${idx + 1} (Uploaded)", fontSize = 10.sp, color = InkColor, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { foodPhotoUrls.removeAt(idx) }) {
+                                Text("Remove", fontSize = 10.sp, color = PrimaryColor)
+                            }
+                        }
+                    }
+
+                    if (foodPhotoUrls.size < 7) {
+                        OutlineButton("+ Open Gallery & Upload Photo (${foodPhotoUrls.size}/7)") {
+                            foodPhotoPickerLauncher.launch("image/*")
+                        }
                     }
                 }
             },
@@ -390,17 +541,18 @@ private fun RestaurantMenuView(vm: AppVm) {
                                 name = nameInput.trim(),
                                 description = descInput.trim(),
                                 priceEtb = priceInput.toIntOrNull() ?: 200,
-                                category = categoryInput,
+                                category = selectedCategory,
                                 emoji = emojiInput,
                                 isFasting = isFastingInput,
-                                prepTimeMin = 15
+                                prepTimeMin = 15,
+                                imageList = foodPhotoUrls.toList()
                             )
                             vm.addMenuItem(newItem)
                             showAddItemDialog = false
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                ) { Text("Save Item", fontWeight = FontWeight.Bold) }
+                ) { Text("Save Food Item", fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { showAddItemDialog = false }) { Text("Cancel", color = GrayColor) } }
         )
@@ -446,16 +598,19 @@ private fun RestaurantScheduledView(vm: AppVm) {
     }
 }
 
-/* ---------- 5. Reports & Analytics View ---------- */
+/* ---------- 5. Reports & Analytics View with CSV and Excel Exports ---------- */
 @Composable
 private fun RestaurantReportsView(vm: AppVm) {
+    val context = LocalContext.current
     var rangeFilter by remember { mutableStateOf("This Week") }
-    val ranges = listOf("Today", "This Week", "This Month")
+    val ranges = listOf("Today", "This Week", "This Month", "Custom Range")
 
     val completedOrders = vm.orders.filter { it.status == OrderStatus.Delivered }
     val rejectedOrders = vm.orders.filter { it.status == OrderStatus.Rejected }
     val totalRevenue = completedOrders.sumOf { it.totalEtb }
     val avgOrderVal = if (completedOrders.isNotEmpty()) totalRevenue / completedOrders.size else 0
+    val platformFee = vm.orders.size * 10
+    val restaurantNet = (totalRevenue - platformFee - vm.orders.size * 25).coerceAtLeast(0)
 
     Column(
         Modifier
@@ -470,8 +625,8 @@ private fun RestaurantReportsView(vm: AppVm) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Kitchen Analytics & Reports", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = InkColor)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                ranges.forEach { r ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(ranges) { r ->
                     Pill(r, rangeFilter == r) { rangeFilter = r }
                 }
             }
@@ -480,7 +635,9 @@ private fun RestaurantReportsView(vm: AppVm) {
         SoftCard {
             Text("FINANCIAL REVENUE BREAKDOWN ($rangeFilter)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GrayColor)
             Spacer(Modifier.height(8.dp))
-            ReportRow("Gross Sales Revenue", etb(if (totalRevenue == 0) 1250 else totalRevenue))
+            ReportRow("Gross Food Sales Revenue", etb(if (totalRevenue == 0) 1250 else totalRevenue))
+            ReportRow("Platform Service Fees", etb(platformFee))
+            ReportRow("Restaurant Net Earnings", etb(if (restaurantNet == 0) 1000 else restaurantNet))
             ReportRow("Completed Orders Count", if (completedOrders.isEmpty()) "4 orders" else "${completedOrders.size} orders")
             ReportRow("Average Order Value", etb(if (avgOrderVal == 0) 312 else avgOrderVal))
             ReportRow("Cancelled / Rejected Orders", "${rejectedOrders.size} orders")
@@ -503,8 +660,18 @@ private fun RestaurantReportsView(vm: AppVm) {
             ReportRow("Order Fulfillment Rate", "98.2%")
         }
 
-        PrimaryButton("Export CSV Sales Report") {
-            vm.addAuditLog("RESTAURANT_REPORT_EXPORTED", vm.restaurant.name, "Exported $rangeFilter sales report")
+        SoftCard {
+            Text("Export Restaurant Sales Reports", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+            Text("Download or share verified kitchen sales and revenue data.", fontSize = 11.sp, color = GrayColor)
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PrimaryButton("Export CSV (.csv)", Modifier.weight(1f)) {
+                    ReportExportService.exportRestaurantReportCsv(context, vm, rangeFilter)
+                }
+                OutlineButton("Export Excel (.xlsx)", Modifier.weight(1f)) {
+                    ReportExportService.exportRestaurantReportExcel(context, vm, rangeFilter)
+                }
+            }
         }
     }
 }

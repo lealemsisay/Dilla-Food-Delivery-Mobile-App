@@ -15,7 +15,11 @@ import com.dilla.food.ui.*
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { DillaTheme { App() } }
+        setContent {
+            DillaAppTheme {
+                App()
+            }
+        }
     }
 }
 
@@ -29,14 +33,46 @@ fun App(vm: AppVm = viewModel()) {
         composable("signin") {
             SignInScreen(vm) { r -> nav.navigate(r.name.lowercase()) { popUpTo("signin") { inclusive = true } } }
         }
-        composable("customer") { CustomerShell(vm, { nav.navigate("friends") }, { nav.navigate("order/$it") }, { signOut(nav) }) }
-        composable("restaurant") { RestaurantScreen(vm) { signOut(nav) } }
-        composable("rider") { RiderScreen(vm) { signOut(nav) } }
-        composable("admin") { AdminScreen(vm) { signOut(nav) } }
+        composable("customer") {
+            CustomerShell(
+                vm = vm,
+                onPickRestaurant = { nav.navigate("friends") },
+                onOpenOrder = { nav.navigate("order/$it") },
+                onOpenProfile = { nav.navigate("profile") },
+                onOpenChangePass = { nav.navigate("change_pass") },
+                onSignOut = { signOut(nav) }
+            )
+        }
+        composable("restaurant") {
+            RestaurantScreen(
+                vm = vm,
+                onOpenProfile = { nav.navigate("profile") },
+                onOpenChangePass = { nav.navigate("change_pass") },
+                onSignOut = { signOut(nav) }
+            )
+        }
+        composable("rider") {
+            RiderScreen(
+                vm = vm,
+                onOpenProfile = { nav.navigate("profile") },
+                onOpenChangePass = { nav.navigate("change_pass") },
+                onSignOut = { signOut(nav) }
+            )
+        }
+        composable("admin") {
+            AdminScreen(
+                vm = vm,
+                onOpenProfile = { nav.navigate("profile") },
+                onOpenChangePass = { nav.navigate("change_pass") },
+                onSignOut = { signOut(nav) }
+            )
+        }
+        composable("profile") { UserProfileScreen(vm) { nav.popBackStack() } }
+        composable("change_pass") { ChangePasswordScreen(vm) { nav.popBackStack() } }
         composable("friends") { FriendsScreen(vm, { nav.popBackStack() }, { nav.navigate("food") }) }
         composable("food") { FoodScreen(vm, { nav.popBackStack() }, { nav.navigate("checkout") }) }
         composable("checkout") {
-            CheckoutScreen(vm, { nav.popBackStack() }) { id -> nav.navigate("order/$id") { popUpTo("customer") } }
+            CheckoutScreen(vm, { nav.popBackStack() }) { id: String -> nav.navigate("order/$id") { popUpTo("customer") } }
         }
         composable("order/{id}") { e -> OrderDetailScreen(vm, e.arguments?.getString("id") ?: "") { nav.popBackStack() } }
     }

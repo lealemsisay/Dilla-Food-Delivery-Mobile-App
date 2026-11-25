@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 import com.dilla.food.data.*
 
 @Composable
-fun DillaTheme(content: @Composable () -> Unit) {
+fun DillaAppTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
             primary = PrimaryColor,

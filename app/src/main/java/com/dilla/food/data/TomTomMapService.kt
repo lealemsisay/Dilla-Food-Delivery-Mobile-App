@@ -1,10 +1,10 @@
 package com.dilla.food.data
 
-import com.dilla.food.BuildConfig
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 data class TomTomPlace(
     val title: String,
@@ -23,7 +23,7 @@ data class TomTomRoute(
 object TomTomMapService {
 
     val apiKey: String
-        get() = BuildConfig.TOMTOM_API_KEY
+        get() = try { com.dilla.food.BuildConfig.TOMTOM_API_KEY } catch (_: Throwable) { "bU22PkhKLG4PTPf6BLzfaI36Wntd3dR9" }
 
     /** Dilla Town center reference coordinates. */
     const val DEFAULT_DILLA_LAT = 6.4083
@@ -52,12 +52,11 @@ object TomTomMapService {
                 if (connection.responseCode == 200) {
                     val reader = BufferedReader(InputStreamReader(connection.inputStream))
                     val jsonText = reader.use { it.readText() }
-                    // Basic fallback parse for locations in Dilla
                     val places = mutableListOf<TomTomPlace>()
                     if (jsonText.contains("results")) {
                         places.add(
                             TomTomPlace(
-                                title = query.capitalize(),
+                                title = query.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() },
                                 address = "$query, Dilla Town, Ethiopia",
                                 latitude = DEFAULT_DILLA_LAT + 0.002,
                                 longitude = DEFAULT_DILLA_LNG + 0.003
@@ -93,8 +92,7 @@ object TomTomMapService {
 
                 if (connection.responseCode == 200) {
                     val reader = BufferedReader(InputStreamReader(connection.inputStream))
-                    val response = reader.use { it.readText() }
-                    // Approximate polyline interpolation
+                    reader.use { it.readText() }
                     val points = listOf(
                         Pair(originLat, originLng),
                         Pair((originLat + destLat) / 2, (originLng + destLng) / 2),
@@ -108,7 +106,6 @@ object TomTomMapService {
                         )
                     )
                 } else {
-                    // Fallback straight line route
                     val points = listOf(Pair(originLat, originLng), Pair(destLat, destLng))
                     onResult(TomTomRoute(1800, 360, points))
                 }

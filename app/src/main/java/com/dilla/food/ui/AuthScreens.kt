@@ -18,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.dilla.food.R
@@ -61,12 +62,16 @@ fun SignInScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var infoMessage by remember { mutableStateOf<String?>(null) }
 
-    // Role-Specific Fields
+    // Role-Specific & Dynamic Admin Fields
     var restaurantName by remember { mutableStateOf("") }
     var cuisineType by remember { mutableStateOf("Traditional · Tibs & Shiro") }
     var restaurantAddress by remember { mutableStateOf("Piazza Main Street, Kebele 01") }
+    var licenseDocName by remember { mutableStateOf("gedeo_trade_license_2026.pdf") }
     var vehicleType by remember { mutableStateOf("TVS Motorcycle") }
     var plateNumber by remember { mutableStateOf("ET-3-4819") }
+
+    val userCustomValues = remember { mutableStateMapOf<String, String>() }
+    val restaurantCustomValues = remember { mutableStateMapOf<String, String>() }
 
     Column(
         Modifier
@@ -164,12 +169,29 @@ fun SignInScreen(
                 .padding(top = 6.dp)
         )
 
-        // Role Specific Inputs for Registration
+        // Dynamic Custom Fields Configured by Admin
         if (createAccount) {
             when (role) {
+                Role.Customer -> {
+                    if (vm.customUserFields.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("Additional Required Customer Details", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                        vm.customUserFields.forEach { field ->
+                            OutlinedTextField(
+                                value = userCustomValues[field] ?: "",
+                                onValueChange = { userCustomValues[field] = it },
+                                label = { Text(field) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
                 Role.Restaurant -> {
                     Spacer(Modifier.height(8.dp))
-                    Text("Restaurant Application Details", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                    Text("Restaurant Registration & Business License", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
                     OutlinedTextField(
                         value = restaurantName,
                         onValueChange = { restaurantName = it },
@@ -191,6 +213,43 @@ fun SignInScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // Dynamic Admin Fields for Restaurants
+                    vm.customRestaurantFields.forEach { field ->
+                        OutlinedTextField(
+                            value = restaurantCustomValues[field] ?: "",
+                            onValueChange = { restaurantCustomValues[field] = it },
+                            label = { Text(field) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        )
+                    }
+
+                    // License Document Upload Field
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = SurfaceContainer
+                    ) {
+                        Row(
+                            Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Attached Trade License Document", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = InkColor)
+                                Text(licenseDocName, fontSize = 10.sp, color = GrayColor)
+                            }
+                            TextButton(onClick = { licenseDocName = "gedeo_trade_license_updated.pdf" }) {
+                                Text("Change File", fontSize = 11.sp, color = PrimaryColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -199,7 +258,7 @@ fun SignInScreen(
                         color = SecondaryColor.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            "⏳ Note: Restaurant accounts remain PENDING until approved by Dilla Platform Administrators.",
+                            "⏳ Note: Restaurant accounts remain PENDING and cannot access the dashboard until business license and details are reviewed and approved by Dilla Administrators.",
                             Modifier.padding(10.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -257,7 +316,6 @@ fun SignInScreen(
                         )
                     }
                 }
-                else -> {}
             }
         }
 
@@ -270,7 +328,7 @@ fun SignInScreen(
         }
 
         Spacer(Modifier.height(16.dp))
-        PrimaryButton(if (createAccount) "Register Account" else "Sign In") {
+        PrimaryButton(if (createAccount) "Submit Application" else "Sign In") {
             error = when {
                 createAccount && name.isBlank() -> "Please enter your full name."
                 phone.length != 9 -> "Please enter a valid 9-digit Ethiopian phone number after +251."
@@ -294,10 +352,13 @@ fun SignInScreen(
                                 cuisine = cuisineType,
                                 phone = "+251 $phone",
                                 address = restaurantAddress,
-                                status = "Pending"
+                                status = "Pending",
+                                docUrl = licenseDocName,
+                                licenseSubmitted = true,
+                                customFieldsData = restaurantCustomValues.toMap()
                             )
                         )
-                        infoMessage = "Restaurant application submitted! Status is PENDING admin approval."
+                        infoMessage = "Restaurant application and trade license submitted! Access to dashboard blocked until admin approval."
                     } else if (role == Role.Rider) {
                         vm.riderApplications.add(
                             0,
@@ -310,7 +371,7 @@ fun SignInScreen(
                                 status = "Pending"
                             )
                         )
-                        infoMessage = "Rider application submitted! Status is PENDING admin approval."
+                        infoMessage = "Rider application submitted! Access blocked until admin approval."
                     } else {
                         infoMessage = "Account registered successfully!"
                     }
@@ -340,6 +401,26 @@ fun SignInScreen(
                     color = PrimaryColor,
                     fontWeight = FontWeight.Bold
                 )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        // Google Authentication Option (Section 5)
+        OutlinedButton(
+            onClick = {
+                vm.userName = "Google User"
+                vm.role = role
+                onSignedIn(role)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.AccountCircle, contentDescription = "Google", tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Continue with Google", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = InkColor)
             }
         }
     }
@@ -385,7 +466,7 @@ fun SignInScreen(
     }
 }
 
-/** Status screen shown when an application is pending administrator approval. */
+/** Status screen shown when an application is pending administrator approval. Dashboard access is blocked. */
 @Composable
 fun PendingApprovalScreen(
     roleName: String,
@@ -409,15 +490,153 @@ fun PendingApprovalScreen(
             }
         }
         Spacer(Modifier.height(16.dp))
-        Text("Application Pending Approval", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = InkColor)
+        Text("Application Pending Admin Review", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = InkColor)
         Text(
-            "Your $roleName registration is currently under review by Dilla Platform Administrators. You will receive an alert once approved.",
+            "Your $roleName trade license and registration documents have been received. Dilla Administrators are reviewing your submitted files.",
             fontSize = 13.sp,
             color = GrayColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
+
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White,
+            shadowElevation = 2.dp
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                Text("DOCUMENT VERIFICATION STATUS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                Text("Trade License: gedeo_trade_license_2026.pdf (Submitted)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = InkColor, modifier = Modifier.padding(top = 2.dp))
+                Text("Dashboard Access: Blocked until Admin Approval", fontSize = 11.sp, color = SecondaryColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+
         Spacer(Modifier.height(24.dp))
         PrimaryButton("Sign Out", onClick = onSignOut)
+    }
+}
+
+/** Standalone Change Password Screen for all roles with old pass verification & show/hide controls. */
+@Composable
+fun ChangePasswordScreen(
+    vm: AppVm,
+    onBack: () -> Unit
+) {
+    var oldPass by remember { mutableStateOf("") }
+    var newPass by remember { mutableStateOf("") }
+    var confirmPass by remember { mutableStateOf("") }
+
+    var oldPassVisible by remember { mutableStateOf(false) }
+    var newPassVisible by remember { mutableStateOf(false) }
+    var confirmPassVisible by remember { mutableStateOf(false) }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    val repository = remember { FirebaseRepository() }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(SurfaceBg)
+    ) {
+        ScreenHeader("Change Password", onBack = onBack)
+
+        Column(
+            Modifier
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SoftCard {
+                Text("Security Requirements", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = InkColor)
+                Text("• All fields are required.\n• New password must be at least 6 characters.\n• New password cannot match old password.", fontSize = 11.sp, color = GrayColor)
+            }
+
+            OutlinedTextField(
+                value = oldPass,
+                onValueChange = { oldPass = it; errorMessage = null },
+                label = { Text("Old Password") },
+                singleLine = true,
+                visualTransformation = if (oldPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { oldPassVisible = !oldPassVisible }) {
+                        Icon(if (oldPassVisible) Icons.Default.Lock else Icons.Default.Lock, contentDescription = null, tint = GrayColor)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = newPass,
+                onValueChange = { newPass = it; errorMessage = null },
+                label = { Text("New Password") },
+                singleLine = true,
+                visualTransformation = if (newPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { newPassVisible = !newPassVisible }) {
+                        Icon(if (newPassVisible) Icons.Default.Lock else Icons.Default.Lock, contentDescription = null, tint = GrayColor)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = confirmPass,
+                onValueChange = { confirmPass = it; errorMessage = null },
+                label = { Text("Confirm New Password") },
+                singleLine = true,
+                visualTransformation = if (confirmPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { confirmPassVisible = !confirmPassVisible }) {
+                        Icon(if (confirmPassVisible) Icons.Default.Lock else Icons.Default.Lock, contentDescription = null, tint = GrayColor)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            errorMessage?.let {
+                Text(it, color = PrimaryColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+            }
+
+            successMessage?.let {
+                Text(it, color = TertiaryColor, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+            }
+
+            Spacer(Modifier.height(8.dp))
+            PrimaryButton(if (isLoading) "Updating Password..." else "Update Password", enabled = !isLoading) {
+                errorMessage = when {
+                    oldPass.isBlank() -> "Please enter your old password."
+                    newPass.isBlank() -> "Please enter your new password."
+                    confirmPass.isBlank() -> "Please confirm your new password."
+                    newPass.length < 6 -> "New password must be at least 6 characters long."
+                    newPass == oldPass -> "New password must not be identical to your old password."
+                    newPass != confirmPass -> "New password and confirmation password do not match."
+                    else -> null
+                }
+
+                if (errorMessage == null) {
+                    isLoading = true
+                    repository.changePassword(
+                        oldPass = oldPass,
+                        newPass = newPass,
+                        onSuccess = {
+                            isLoading = false
+                            successMessage = "✓ Password successfully updated!"
+                            oldPass = ""
+                            newPass = ""
+                            confirmPass = ""
+                        },
+                        onError = { exception: Exception ->
+                            isLoading = false
+                            errorMessage = exception.message ?: "Incorrect old password or authentication error."
+                        }
+                    )
+                }
+            }
+        }
     }
 }

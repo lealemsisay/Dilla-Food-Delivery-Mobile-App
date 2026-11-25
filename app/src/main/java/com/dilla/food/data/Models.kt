@@ -32,6 +32,15 @@ data class Person(
     val statusText: String = "Added"
 )
 
+data class FoodCategory(
+    val id: String,
+    val name: String,
+    val emoji: String = "🍲",
+    val isGlobal: Boolean = true,
+    val isActive: Boolean = true,
+    val restaurantId: String = ""
+)
+
 data class MenuItem(
     val id: String,
     val name: String,
@@ -40,7 +49,14 @@ data class MenuItem(
     val category: String,
     val emoji: String,
     val isFasting: Boolean = false,
-    val prepTimeMin: Int = 15
+    val isHalal: Boolean = true,
+    val prepTimeMin: Int = 15,
+    val restaurantId: String = "r1",
+    val restaurantName: String = "Lucy Traditional Kitchen",
+    val photoUri: String = "",
+    val imageList: List<String> = emptyList(), // Up to 7 photos per food item
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 data class CartLine(val personId: String, val itemId: String, val qty: Int)
@@ -60,7 +76,9 @@ data class Restaurant(
     val lat: Double = 6.4085,
     val lng: Double = 38.3105,
     val operatingHours: String = "08:00 AM - 10:00 PM",
-    val phone: String = "+251 91 111 2233"
+    val phone: String = "+251 91 111 2233",
+    val isApprovedByAdmin: Boolean = true,
+    val licenseSubmitted: Boolean = true
 )
 
 enum class OrderStatus(val label: String) {
@@ -110,6 +128,20 @@ data class PlacedOrder(
 
 data class Share(val person: Person, val subtotal: Int, val fees: Int) { val due get() = subtotal + fees }
 
+/* ---------- Phase 3: Notification Data Model ---------- */
+data class NotificationModel(
+    val id: String,
+    val userId: String = "user_me",
+    val role: Role = Role.Customer,
+    val title: String,
+    val message: String,
+    val timestamp: String = "Just Now",
+    val isRead: Boolean = false,
+    val orderId: String? = null,
+    val restaurantId: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 /* ---------- Phase 6: Admin Data Models ---------- */
 data class CustomerUser(
     val id: String,
@@ -119,7 +151,8 @@ data class CustomerUser(
     val registeredDate: String = "Oct 2026",
     val isActive: Boolean = true,
     val totalOrders: Int = 3,
-    val defaultAddress: String = "Kebele 01 Piazza, Dilla"
+    val defaultAddress: String = "Kebele 01 Piazza, Dilla",
+    val customFieldsData: Map<String, String> = emptyMap()
 )
 
 data class RestaurantApplication(
@@ -132,7 +165,9 @@ data class RestaurantApplication(
     val status: String = "Pending", // "Pending", "Approved", "Rejected"
     val rejectionReason: String = "",
     val submittedAt: String = "Today, 10:15 AM",
-    val docUrl: String = "license_doc.pdf"
+    val docUrl: String = "gedeo_trade_license_2026.pdf",
+    val licenseSubmitted: Boolean = true,
+    val customFieldsData: Map<String, String> = emptyMap()
 )
 
 data class RiderApplication(
@@ -263,6 +298,21 @@ object Demo {
         Person("u6", "Jackie M.", Color(0xFFFFA726), "Main Campus", "Added")
     )
 
+    val globalCategories = listOf(
+        FoodCategory("gc1", "Fasting Food", "🍲"),
+        FoodCategory("gc2", "Low Prices", "🏷️"),
+        FoodCategory("gc3", "Drinks", "🍹"),
+        FoodCategory("gc4", "Lunch", "🍱"),
+        FoodCategory("gc5", "Dinner", "🍲"),
+        FoodCategory("gc6", "Breakfast", "🍳"),
+        FoodCategory("gc7", "Cakes", "🍰"),
+        FoodCategory("gc8", "Pizza", "🍕"),
+        FoodCategory("gc9", "Burgers", "🍔"),
+        FoodCategory("gc10", "Traditional Food", "🥩"),
+        FoodCategory("gc11", "Fast Food", "🍟"),
+        FoodCategory("gc12", "Halal Food", "🌙")
+    )
+
     val restaurants = listOf(
         Restaurant("r1", "Lucy Traditional Kitchen", "Traditional · Tibs & Shiro", 25, 30, true, "🍲", 0.8, true, 4.9, "Piazza Center, Kebele 01", 6.4085, 38.3105),
         Restaurant("r2", "Green Paradise Garden", "Ethiopian · Agelgil & Salads", 30, 40, true, "🥗", 1.2, true, 4.8, "Kebele 02 Garden Quarter", 6.4110, 38.3130),
@@ -272,15 +322,15 @@ object Demo {
     )
 
     val menu = listOf(
-        MenuItem("m1", "Special Shekla Tibs", "Sizzling beef tibs served on a traditional clay pot with fresh green chili & injera.", 380, "Traditional", "🥩", false, 20),
-        MenuItem("m2", "Fasting Beyaynetu", "Authentic Ethiopian platter with shiro, misir wot, kik alicha, gomen and beet salad.", 220, "Traditional", "🍲", true, 15),
-        MenuItem("m3", "Special Shiro Tegabino", "Rich bubbling chickpea stew in clay pot served with hot Injera.", 180, "Traditional", "🥘", true, 12),
-        MenuItem("m4", "Special Agelgil Family Combo", "Traditional leather-wrapped basket pack with doro wot, key wot, shiro & 4 boiled eggs.", 750, "Family Feasts", "🧺", false, 25),
-        MenuItem("m5", "Avocado-Papaya Spris Juice", "Fresh layered Dilla fruit smoothie with lime wedge.", 90, "Juice & Drinks", "🥑", true, 8),
-        MenuItem("m6", "Cheeky Chick'N Burger", "Crispy spiced chicken fillet, lettuce, tomato and signature house sauce.", 240, "Fast Food", "🍔", false, 15),
-        MenuItem("m7", "Double Cheese Burger Combo", "Two beef patties, melted cheese, seasoned fries and cold soda.", 340, "Fast Food", "🍟", false, 15),
-        MenuItem("m8", "Chechebsa with Honey", "Shredded flatbread cooked in spiced kibe butter, topped with honey and fresh yogurt.", 190, "Breakfast", "🍳", false, 12),
-        MenuItem("m9", "Sparkling Ambo Water", "500ml glass bottle.", 40, "Juice & Drinks", "🍾", true, 2)
+        MenuItem("m1", "Special Shekla Tibs", "Sizzling beef tibs served on a traditional clay pot with fresh green chili & injera.", 380, "Traditional Food", "🥩", false, true, 20, "r1", "Lucy Traditional Kitchen", "https://images.unsplash.com/photo-1544025162-d76694265947", listOf("https://images.unsplash.com/photo-1544025162-d76694265947")),
+        MenuItem("m2", "Fasting Beyaynetu", "Authentic Ethiopian platter with shiro, misir wot, kik alicha, gomen and beet salad.", 220, "Fasting Food", "🍲", true, true, 15, "r1", "Lucy Traditional Kitchen", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd", listOf("https://images.unsplash.com/photo-1512621776951-a57141f2eefd")),
+        MenuItem("m3", "Special Shiro Tegabino", "Rich bubbling chickpea stew in clay pot served with hot Injera.", 180, "Fasting Food", "🥘", true, true, 12, "r1", "Lucy Traditional Kitchen"),
+        MenuItem("m4", "Special Agelgil Family Combo", "Traditional leather-wrapped basket pack with doro wot, key wot, shiro & 4 boiled eggs.", 750, "Traditional Food", "🧺", false, true, 25, "r2", "Green Paradise Garden"),
+        MenuItem("m5", "Avocado-Papaya Spris Juice", "Fresh layered Dilla fruit smoothie with lime wedge.", 90, "Drinks", "🥑", true, true, 8, "r4", "Campus Central Cafe"),
+        MenuItem("m6", "Cheeky Chick'N Burger", "Crispy spiced chicken fillet, lettuce, tomato and signature house sauce.", 240, "Burgers", "🍔", false, true, 15, "r3", "Dilla Burger & Grill"),
+        MenuItem("m7", "Double Cheese Burger Combo", "Two beef patties, melted cheese, seasoned fries and cold soda.", 340, "Burgers", "🍟", false, true, 15, "r3", "Dilla Burger & Grill"),
+        MenuItem("m8", "Chechebsa with Honey", "Shredded flatbread cooked in spiced kibe butter, topped with honey and fresh yogurt.", 190, "Breakfast", "🍳", false, true, 12, "r4", "Campus Central Cafe"),
+        MenuItem("m9", "Sparkling Ambo Water", "500ml glass bottle.", 40, "Drinks", "🍾", true, true, 2, "r4", "Campus Central Cafe")
     )
 
     val initialCustomers = listOf(
@@ -292,8 +342,8 @@ object Demo {
     )
 
     val initialRestaurantApps = listOf(
-        RestaurantApplication("ra1", "Abyssinia Traditional House", "Abebe Bikila", "Ethiopian · Tibs", "+251 91 555 1234", "Piazza Main Street, Kebele 01", "Pending", "", "Today, 10:15 AM"),
-        RestaurantApplication("ra2", "Gedeo Coffee & Pastry", "Tigist Alemu", "Cafeteria · Coffee", "+251 92 666 2345", "Referral Hospital Gate", "Approved", "", "Yesterday, 02:30 PM")
+        RestaurantApplication("ra1", "Abyssinia Traditional House", "Abebe Bikila", "Ethiopian · Tibs", "+251 91 555 1234", "Piazza Main Street, Kebele 01", "Pending", "", "Today, 10:15 AM", "gedeo_trade_license_2026.pdf", true, mapOf("Trade License Number" to "TL-88421", "Tax ID (TIN)" to "TIN-908122")),
+        RestaurantApplication("ra2", "Gedeo Coffee & Pastry", "Tigist Alemu", "Cafeteria · Coffee", "+251 92 666 2345", "Referral Hospital Gate", "Approved", "", "Yesterday, 02:30 PM", "health_permit_2026.pdf", true, mapOf("Trade License Number" to "TL-11029", "Tax ID (TIN)" to "TIN-445100"))
     )
 
     val initialRiderApps = listOf(
@@ -323,6 +373,115 @@ object Demo {
 class AppVm : ViewModel() {
     var role by mutableStateOf<Role?>(null)
     var userName by mutableStateOf("Kidus (Dilla Resident)")
+
+    // Notification System State
+    val notifications = mutableStateListOf<NotificationModel>().apply {
+        add(
+            NotificationModel(
+                id = "notif_1",
+                title = "Order in Transit 🛵",
+                message = "Rider Amanuel Girma is on the way with your order #DF-88219.",
+                timestamp = "5 mins ago",
+                isRead = false,
+                orderId = "DF-88219"
+            )
+        )
+    }
+
+    fun sendNotification(
+        title: String,
+        message: String,
+        role: Role = Role.Customer,
+        orderId: String? = null,
+        restaurantId: String? = null
+    ) {
+        val newNotif = NotificationModel(
+            id = "notif_" + System.currentTimeMillis(),
+            userId = "user_me",
+            role = role,
+            title = title,
+            message = message,
+            timestamp = "Just Now",
+            isRead = false,
+            orderId = orderId,
+            restaurantId = restaurantId
+        )
+        notifications.add(0, newNotif)
+    }
+
+    fun markNotificationAsRead(id: String) {
+        val idx = notifications.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            notifications[idx] = notifications[idx].copy(isRead = true)
+        }
+    }
+
+    fun markAllNotificationsAsRead() {
+        notifications.indices.forEach { i ->
+            notifications[i] = notifications[i].copy(isRead = true)
+        }
+    }
+
+    // Food Category State Management (Global & Restaurant-created)
+    val globalFoodCategories = mutableStateListOf<FoodCategory>().apply { addAll(Demo.globalCategories) }
+    val restaurantCustomCategories = mutableStateListOf<FoodCategory>()
+
+    fun addGlobalCategory(category: FoodCategory) {
+        if (category.name.isNotBlank() && globalFoodCategories.none { it.name.equals(category.name, ignoreCase = true) }) {
+            globalFoodCategories.add(0, category)
+            addAuditLog("GLOBAL_CATEGORY_ADDED", category.name, "Added new global food category")
+        }
+    }
+
+    fun toggleGlobalCategoryActive(id: String) {
+        val idx = globalFoodCategories.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            val cat = globalFoodCategories[idx]
+            globalFoodCategories[idx] = cat.copy(isActive = !cat.isActive)
+        }
+    }
+
+    fun addRestaurantCategory(name: String, emoji: String = "🍲") {
+        if (name.isNotBlank() && restaurantCustomCategories.none { it.name.equals(name, ignoreCase = true) }) {
+            val newCat = FoodCategory(
+                id = "rc_" + System.currentTimeMillis(),
+                name = name.trim(),
+                emoji = emoji,
+                isGlobal = false,
+                isActive = true,
+                restaurantId = restaurant.id
+            )
+            restaurantCustomCategories.add(0, newCat)
+        }
+    }
+
+    fun deleteRestaurantCategory(id: String) {
+        restaurantCustomCategories.removeAll { it.id == id }
+    }
+
+    // Dynamic Custom Fields configured by Admin in Settings
+    val customUserFields = mutableStateListOf<String>("Emergency Phone Number", "Preferred Delivery Slot")
+    val customRestaurantFields = mutableStateListOf<String>("Trade License Number", "Tax Identification Number (TIN)", "Health & Safety Permit Code")
+
+    fun addCustomUserField(fieldName: String) {
+        if (fieldName.isNotBlank() && fieldName !in customUserFields) {
+            customUserFields.add(fieldName.trim())
+        }
+    }
+
+    fun removeCustomUserField(fieldName: String) {
+        customUserFields.remove(fieldName)
+    }
+
+    fun addCustomRestaurantField(fieldName: String) {
+        if (fieldName.isNotBlank() && fieldName !in customRestaurantFields) {
+            customRestaurantFields.add(fieldName.trim())
+        }
+    }
+
+    fun removeCustomRestaurantField(fieldName: String) {
+        customRestaurantFields.remove(fieldName)
+    }
 
     // Customer Favorites State Management
     val favoriteRestaurants = mutableStateListOf<String>().apply { add("r1"); add("r2") }
@@ -422,6 +581,15 @@ class AppVm : ViewModel() {
             val app = restaurantApplications[idx]
             restaurantApplications[idx] = app.copy(status = "Approved")
             addAuditLog("RESTAURANT_APPROVED", app.name, "Approved vendor application for ${app.ownerName}")
+
+            // Trigger New Restaurant Announcement Notification to Customers
+            sendNotification(
+                title = "New Restaurant Available! 🍲",
+                message = "A new restaurant has joined Dilla Food Delivery! Visit ${app.name} and explore its menu. You can now place your order.",
+                role = Role.Customer,
+                orderId = null,
+                restaurantId = app.id
+            )
         }
     }
 
@@ -513,6 +681,7 @@ class AppVm : ViewModel() {
     var deliveryModeTab by mutableStateOf("Individual") // "Individual", "Group Order", "Family Feasts", "Office Lunch"
     var activeCategoryFilter by mutableStateOf("All Feeds")
     var activeDietaryFilter by mutableStateOf("All Cuisines")
+    var activeSortOption by mutableStateOf("Lowest Price") // "Lowest Price", "Highest Price", "Newest", "Popularity"
     var restaurant by mutableStateOf(Demo.restaurants.first())
     var activeId by mutableStateOf("me")
 
@@ -582,7 +751,7 @@ class AppVm : ViewModel() {
         restaurant = r
         cart.clear()
         selectedAddressId = o.deliveryAddress.id
-        val defaultItem = menu.firstOrNull { it.category == "Traditional" || it.category == "Fast Food" } ?: menu.first()
+        val defaultItem = menu.firstOrNull { it.category == "Traditional Food" || it.category == "Fast Food" } ?: menu.first()
         add("me", defaultItem.id)
     }
 
@@ -618,11 +787,53 @@ class AppVm : ViewModel() {
         )
         orders.add(0, newOrder)
         cart.clear(); activeId = "me"
+
+        // Trigger Order Placed Notification
+        sendNotification(
+            title = "Order Placed Successfully! 🛒",
+            message = "Your order #$id has been received by ${restaurant.name}.",
+            role = Role.Customer,
+            orderId = id,
+            restaurantId = null
+        )
+
         return id
     }
+
     fun order(id: String) = orders.firstOrNull { it.id == id }
+
     fun setStatus(id: String, s: OrderStatus) {
         val i = orders.indexOfFirst { it.id == id }
-        if (i >= 0) orders[i] = orders[i].copy(status = s)
+        if (i >= 0) {
+            val oldStatus = orders[i].status
+            orders[i] = orders[i].copy(status = s)
+            if (oldStatus != s) {
+                val title = when (s) {
+                    OrderStatus.Accepted -> "Order Confirmed! 👨‍🍳"
+                    OrderStatus.Preparing -> "Kitchen is Preparing Food 🍳"
+                    OrderStatus.Ready -> "Food Ready for Pickup 🛍️"
+                    OrderStatus.InTransit -> "Rider in Transit 🛵"
+                    OrderStatus.Delivered -> "Order Delivered! 🎉"
+                    OrderStatus.Rejected -> "Order Cancelled ⚠️"
+                    else -> "Order Update #${id}"
+                }
+                val msg = when (s) {
+                    OrderStatus.Accepted -> "Your order #${id} has been accepted by ${orders[i].restaurant}."
+                    OrderStatus.Preparing -> "The kitchen is actively preparing your dishes."
+                    OrderStatus.Ready -> "Your meal is packed and ready for rider pickup."
+                    OrderStatus.InTransit -> "Rider ${orders[i].riderName} is on the way to ${orders[i].deliveryAddress.label}."
+                    OrderStatus.Delivered -> "Your order #${id} was delivered & PIN confirmed."
+                    OrderStatus.Rejected -> "Order #${id} was cancelled or rejected."
+                    else -> "Order #${id} status changed to ${s.label}."
+                }
+                sendNotification(
+                    title = title,
+                    message = msg,
+                    role = Role.Customer,
+                    orderId = id,
+                    restaurantId = null
+                )
+            }
+        }
     }
 }
